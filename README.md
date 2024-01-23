@@ -12,9 +12,9 @@ Includes three privacy settings out of the box, depending on how secret your map
 - Disable the status entirely
 
 ## Usage
-Install it just like any other Celeste mod. On first launch, the plugin will automatically download and install the required binaries (Requires an active internet connection, and currently only supports Windows. Sorry, Linux and Mac users.)
+Install it just like any other Celeste mod. On first launch, the plugin will automatically download and install the required binaries (Requires an active internet connection, and currently only supports Windows. Sorry, Linux and Mac users.) You may have to restart Lönn after.
 
-In Lonn, go to `File > Lonn Discord RPC` to see plugin settings.
+In Lönn, go to `File > Lonn Discord RPC` to see plugin settings.
 
 For manual setup: [download the binaries here](https://github.com/discord/discord-rpc/releases/), install as needed.
 
