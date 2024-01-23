@@ -1,0 +1,6 @@
+ui.menubar.lonn_drpc_menu=Lonn Discord RPC
+ui.menubar.lonn_drpc_menu_settings=Settings...
+ui.menubar.lonn_drpc_menu_privacy=Privacy Level
+ui.menubar.lonn_drpc_menu_privacy_low=Show project name + map name
+ui.menubar.lonn_drpc_menu_privacy_medium=Show status only (Default)
+ui.menubar.lonn_drpc_menu_privacy_high=Disable status
