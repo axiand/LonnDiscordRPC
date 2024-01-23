@@ -11,7 +11,7 @@ local os = love.system.getOS()
 
 if os ~= "Windows" then return end
 
-local DLL_SOURCE_URL = "https://cdn.discordapp.com/attachments/518177276030877737/1198638610203820072/attachment.dll?ex=65bfa232&is=65ad2d32&hm=5b5f6bd8b25788e81a26c4569093893eeb642eb946967cab92257bcec6ba1d39&"
+local DLL_SOURCE_URL = "https://github.com/axiand/LonnDiscordRPC/raw/dist/dist/discord-rpc-win"
 
 local targetPathSplit = fs.splitpath(locations.getSourcePath())
 table.remove(targetPathSplit, #targetPathSplit) -- remove last item because its the executable file
