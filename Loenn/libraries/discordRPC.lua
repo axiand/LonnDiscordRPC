@@ -1,6 +1,6 @@
 -- https://github.com/pfirsich/lua-discordRPC
 -- Released under the MIT license.
--- Adapted to Loenn by citrustea.
+-- Adapted to Loenn by axiand.
 
 local ffi = require "ffi"
 

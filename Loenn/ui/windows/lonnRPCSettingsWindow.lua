@@ -14,7 +14,7 @@ function lonnRPCSettingsWindow.open(_)
 
     local wContent = uiElements.column({
         uiElements.label("Lonn Discord RPC v1.1.0"),
-        uiElements.label("Developed by xocherry, released under the MIT license"),
+        uiElements.label("Developed by axiand, released under the MIT license"),
     })
 
     local window = uiElements.window(wTitle, wContent)
