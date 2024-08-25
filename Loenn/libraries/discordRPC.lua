@@ -3,18 +3,19 @@
 -- Adapted to Loenn by citrustea.
 
 local ffi = require "ffi"
-local discordRPClib = ffi.load("discord-rpc")
+
+local discordRPC = {
+    Lib = nil
+} -- module table
 
 --[[
-    Cursed hack incoming!
-
-    Something in Loenn causes this code to run twice
-    (I can't be asked to figure out what it is.)
-    This is bad, because then the module errors out, stating
-    "attempt to redefine x". So we have to do this. :(
+    Main function used to init the RPC library.
+    Don't touch anything else before calling boot or it will crash
+    (if discordRPC.Lib != nil)
 ]]--
+function discordRPC.boot()
+    discordRPC.Lib = ffi.load("lib-discord-rpc")
 
-if _G.loennDiscordRPCHasLoaded == nil then
     ffi.cdef[[
     typedef struct DiscordRichPresence {
         const char* state;   /* max 128 bytes */
@@ -74,11 +75,47 @@ if _G.loennDiscordRPCHasLoaded == nil then
 
     void Discord_UpdateHandlers(DiscordEventHandlers* handlers);
     ]]
+
+    -- callback proxies
+    -- note: callbacks are not JIT compiled (= SLOW), try to avoid doing performance critical tasks in them
+    -- luajit.org/ext_ffi_semantics.html
+    local ready_proxy = ffi.cast("readyPtr", function(request)
+        if discordRPC.ready then
+            discordRPC.ready(unpackDiscordUser(request))
+        end
+    end)
+
+    local disconnected_proxy = ffi.cast("disconnectedPtr", function(errorCode, message)
+        if discordRPC.disconnected then
+            discordRPC.disconnected(errorCode, ffi.string(message))
+        end
+    end)
+
+    local errored_proxy = ffi.cast("erroredPtr", function(errorCode, message)
+        if discordRPC.errored then
+            discordRPC.errored(errorCode, ffi.string(message))
+        end
+    end)
+
+    local joinGame_proxy = ffi.cast("joinGamePtr", function(joinSecret)
+        if discordRPC.joinGame then
+            discordRPC.joinGame(ffi.string(joinSecret))
+        end
+    end)
+
+    local spectateGame_proxy = ffi.cast("spectateGamePtr", function(spectateSecret)
+        if discordRPC.spectateGame then
+            discordRPC.spectateGame(ffi.string(spectateSecret))
+        end
+    end)
+
+    local joinRequest_proxy = ffi.cast("joinRequestPtr", function(request)
+        if discordRPC.joinRequest then
+            discordRPC.joinRequest(unpackDiscordUser(request))
+        end
+    end)
 end
-
-_G.loennDiscordRPCHasLoaded = true
-
-local discordRPC = {} -- module table
+-- END boot()
 
 -- proxy to detect garbage collection of the module
 discordRPC.gcDummy = newproxy(true)
@@ -87,45 +124,6 @@ local function unpackDiscordUser(request)
     return ffi.string(request.userId), ffi.string(request.username),
         ffi.string(request.discriminator), ffi.string(request.avatar)
 end
-
--- callback proxies
--- note: callbacks are not JIT compiled (= SLOW), try to avoid doing performance critical tasks in them
--- luajit.org/ext_ffi_semantics.html
-local ready_proxy = ffi.cast("readyPtr", function(request)
-    if discordRPC.ready then
-        discordRPC.ready(unpackDiscordUser(request))
-    end
-end)
-
-local disconnected_proxy = ffi.cast("disconnectedPtr", function(errorCode, message)
-    if discordRPC.disconnected then
-        discordRPC.disconnected(errorCode, ffi.string(message))
-    end
-end)
-
-local errored_proxy = ffi.cast("erroredPtr", function(errorCode, message)
-    if discordRPC.errored then
-        discordRPC.errored(errorCode, ffi.string(message))
-    end
-end)
-
-local joinGame_proxy = ffi.cast("joinGamePtr", function(joinSecret)
-    if discordRPC.joinGame then
-        discordRPC.joinGame(ffi.string(joinSecret))
-    end
-end)
-
-local spectateGame_proxy = ffi.cast("spectateGamePtr", function(spectateSecret)
-    if discordRPC.spectateGame then
-        discordRPC.spectateGame(ffi.string(spectateSecret))
-    end
-end)
-
-local joinRequest_proxy = ffi.cast("joinRequestPtr", function(request)
-    if discordRPC.joinRequest then
-        discordRPC.joinRequest(unpackDiscordUser(request))
-    end
-end)
 
 -- helpers
 local function checkArg(arg, argType, argName, func, maybeNil)
@@ -171,16 +169,16 @@ function discordRPC.initialize(applicationId, autoRegister, optionalSteamId)
     eventHandlers.spectateGame = spectateGame_proxy
     eventHandlers.joinRequest = joinRequest_proxy
 
-    discordRPClib.Discord_Initialize(applicationId, eventHandlers,
+    discordRPC.Lib.Discord_Initialize(applicationId, eventHandlers,
         autoRegister and 1 or 0, optionalSteamId)
 end
 
 function discordRPC.shutdown()
-    discordRPClib.Discord_Shutdown()
+    discordRPC.Lib.Discord_Shutdown()
 end
 
 function discordRPC.runCallbacks()
-    discordRPClib.Discord_RunCallbacks()
+    discordRPC.Lib.Discord_RunCallbacks()
 end
 -- http://luajit.org/ext_ffi_semantics.html#callback :
 -- It is not allowed, to let an FFI call into a C function (runCallbacks)
@@ -235,11 +233,11 @@ function discordRPC.updatePresence(presence)
     cpresence.spectateSecret = presence.spectateSecret
     cpresence.instance = presence.instance or 0
 
-    discordRPClib.Discord_UpdatePresence(cpresence)
+    discordRPC.Lib.Discord_UpdatePresence(cpresence)
 end
 
 function discordRPC.clearPresence()
-    discordRPClib.Discord_ClearPresence()
+    discordRPC.Lib.Discord_ClearPresence()
 end
 
 local replyMap = {
@@ -252,7 +250,7 @@ local replyMap = {
 function discordRPC.respond(userId, reply)
     checkStrArg(userId, nil, "userId", "discordRPC.respond")
     assert(replyMap[reply], "Argument 'reply' to discordRPC.respond has to be one of \"yes\", \"no\" or \"ignore\"")
-    discordRPClib.Discord_Respond(userId, replyMap[reply])
+    discordRPC.Lib.Discord_Respond(userId, replyMap[reply])
 end
 
 -- garbage collection callback

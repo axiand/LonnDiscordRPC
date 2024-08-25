@@ -5,7 +5,6 @@ local sceneHandler = require("scene_handler")
 local ls = require("loaded_state")
 local config = require("utils.config")
 
-local discordRPC = mods.requireFromPlugin("libraries.discordRPC")
 local pm = mods.requireFromPlugin("libraries.ProjectManager")
 local settings = mods.getModSettings("LonnDiscordRPC")
 
@@ -13,7 +12,10 @@ local appId = "1198217977275879484"
 
 local startedAt = os.time(os.date("*t"))
 
-local RPCHandler = {}
+local RPCHandler = {
+    booted = false,
+    lib = nil, -- provided to us by the wrapper
+}
 
 --[[
     0: Show project name and bin name
@@ -29,25 +31,35 @@ function RPCHandler.setPrivacyLevel(num)
     config.writeConfig(settings)
 end
 
--- ref: https://github.com/pfirsich/lua-discordRPC/blob/master/main.lua
+function RPCHandler.boot()
+    -- must init library before anything else
+    RPCHandler.lib.boot()
 
-function discordRPC.errored(errorCode, message)
-    logger.info(string.format("Discord: error (%d: %s)", errorCode, message))
+    -- ref: https://github.com/pfirsich/lua-discordRPC/blob/master/main.lua
+
+    function RPCHandler.lib.errored(errorCode, message)
+        logger.info(string.format("Discord: error (%d: %s)", errorCode, message))
+    end
+
+    -- todo: logging magically stopped working?
+    function RPCHandler.lib.ready(userId, username)
+        logger.info(string.format("Discord: ready (%s, %s)", userId, username))
+    end
+
+    function RPCHandler.lib.disconnected(errorCode, message)
+        logger.info(string.format("Discord: disconnected (%d: %s)", errorCode, message))
+    end
+
+    RPCHandler.nextPresenceUpdate = 0
+
+    RPCHandler.lib.initialize(appId, true)
+
+    RPCHandler.booted = true
 end
-
-function discordRPC.ready(userId, username)
-    logger.info(string.format("Discord: ready (%s, %s)", userId, username))
-end
-
-function discordRPC.disconnected(errorCode, message)
-    logger.info(string.format("Discord: disconnected (%d: %s)", errorCode, message))
-end
-
-RPCHandler.nextPresenceUpdate = 0
-
-discordRPC.initialize(appId, true)
 
 local function updatePresence()
+    if not RPCHandler.booted then return end
+
     -- spam prevention
     if love.timer.getTime() < RPCHandler.nextPresenceUpdate then 
         return
@@ -90,12 +102,12 @@ local function updatePresence()
     
     --logger.info("Updating discord presence " .. RPCHandler.privacyLevel)
     if RPCHandler.privacyLevel < 2 then
-        discordRPC.updatePresence(RPCHandler.presenceData)
+        RPCHandler.lib.updatePresence(RPCHandler.presenceData)
     else
-        discordRPC.clearPresence()
+        RPCHandler.lib.clearPresence()
     end
 
-    discordRPC.runCallbacks()
+    RPCHandler.lib.runCallbacks()
 
     RPCHandler.nextPresenceUpdate += 10.0
 end
@@ -132,7 +144,5 @@ end
 function _loennRPC_unloadSeq()
     sceneHandler.changeScene = _sceneHandlerChangeScene
 end
-
-mods.requireFromPlugin("libraries.RPCHandlerWrapper")["handler"] = RPCHandler
 
 return RPCHandler

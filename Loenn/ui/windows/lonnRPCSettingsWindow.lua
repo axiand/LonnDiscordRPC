@@ -10,10 +10,11 @@ local lonnRPCSettingsWindow = {}
 local lonnRPCSettingsWindowGroup = uiElements.group({})
 
 function lonnRPCSettingsWindow.open(_)
-    local wTitle = "Window..."
+    local wTitle = "LDRPC - About"
 
     local wContent = uiElements.column({
-        uiElements.label("Sorry, there's nothing here yet")
+        uiElements.label("Lonn Discord RPC v1.1.0"),
+        uiElements.label("Developed by xocherry, released under the MIT license"),
     })
 
     local window = uiElements.window(wTitle, wContent)
