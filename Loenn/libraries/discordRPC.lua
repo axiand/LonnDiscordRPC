@@ -255,6 +255,10 @@ end
 
 -- garbage collection callback
 getmetatable(discordRPC.gcDummy).__gc = function()
+    -- when using ctrl+f5, something in loenn seemingly frees these objects early, but this function executes anyway...
+    -- so here's a guard
+    if discordRPC.Lib == nil then return end
+
     discordRPC.shutdown()
     ready_proxy:free()
     disconnected_proxy:free()
